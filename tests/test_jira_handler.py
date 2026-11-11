@@ -33,18 +33,33 @@ def _page(issues, total):
     return {"total": total, "issues": issues}
 
 
+def _token_page(issues, token=None, is_last=True):
+    page: dict = {"issues": issues, "isLast": is_last}
+    if token is not None:
+        page["nextPageToken"] = token
+    return page
+
+
 def test_get_all_issues_paginates_across_three_pages(handler, mock_client, sample_issues):
     pages = [
-        _page(sample_issues[0:1] + [dict(sample_issues[1], key="DATA-104")], 5),
-        _page([dict(sample_issues[2], key="DATA-105"), dict(sample_issues[0], key="DATA-106")], 5),
-        _page([dict(sample_issues[1], key="DATA-107")], 5),
+        _token_page(
+            sample_issues[0:1] + [dict(sample_issues[1], key="DATA-104")],
+            token="tok-1",
+            is_last=False,
+        ),
+        _token_page(
+            [dict(sample_issues[2], key="DATA-105"), dict(sample_issues[0], key="DATA-106")],
+            token="tok-2",
+            is_last=False,
+        ),
+        _token_page([dict(sample_issues[1], key="DATA-107")], is_last=True),
     ]
     mock_client.search_jql.side_effect = pages
     issues = handler.get_all_issues("project = DATA", page_size=2)
     assert len(issues) == 5
     assert mock_client.search_jql.call_count == 3
-    start_ats = [call.kwargs["start_at"] for call in mock_client.search_jql.call_args_list]
-    assert start_ats == [0, 2, 4]
+    tokens = [call.kwargs["next_page_token"] for call in mock_client.search_jql.call_args_list]
+    assert tokens == [None, "tok-1", "tok-2"]
 
 
 def test_get_all_issues_stops_at_total(handler, mock_client, sample_issues):
@@ -123,8 +138,11 @@ def test_get_users_delegates_query(handler, mock_client):
 def test_search_issues_passes_fields_through(handler, mock_client):
     mock_client.search_jql.return_value = {"total": 0, "issues": []}
     handler.search_issues(
-        "project = DATA", fields=["summary", "status"], start_at=5, max_results=25
+        "project = DATA", fields=["summary", "status"], max_results=25, next_page_token="tok-9"
     )
     mock_client.search_jql.assert_called_once_with(
-        "project = DATA", fields=["summary", "status"], start_at=5, max_results=25
+        "project = DATA",
+        fields=["summary", "status"],
+        max_results=25,
+        next_page_token="tok-9",
     )

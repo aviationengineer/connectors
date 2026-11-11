@@ -185,7 +185,7 @@ def sample_jira_search_response(sample_issues) -> dict:
     """A realistic ``/search/jql`` response wrapping the 3 fixtures."""
     return {
         "total": 3,
-        "startAt": 0,
+        "isLast": True,
         "maxResults": 100,
         "isLast": True,
         "issues": sample_issues,

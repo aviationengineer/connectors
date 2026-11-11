@@ -117,18 +117,35 @@ def test_search_jql_posts_to_search_endpoint_with_payload(client):
     client.search_jql(
         "project = DATA ORDER BY updated DESC",
         fields=["summary", "status"],
-        start_at=10,
         max_results=50,
+        next_page_token="tok-abc",
     )
     args, kwargs = client.session.request.call_args
     assert args[0] == "POST"
     assert args[1] == f"{BASE_URL}/rest/api/3/search/jql"
     assert kwargs["json"] == {
         "jql": "project = DATA ORDER BY updated DESC",
-        "startAt": 10,
         "maxResults": 50,
         "fields": ["summary", "status"],
+        "nextPageToken": "tok-abc",
     }
+
+
+def test_search_jql_omits_next_page_token_when_none(client):
+    client.session.request.return_value = _response(200, {"total": 0, "issues": []})
+    client.search_jql("project = DATA")
+    _, kwargs = client.session.request.call_args
+    assert "nextPageToken" not in kwargs["json"]
+    assert "startAt" not in kwargs["json"]
+
+
+def test_search_jql_defaults_to_all_fields(client):
+    # The /search/jql endpoint returns only the issue ID when no fields
+    # are requested, so an omitted fields list must become ["*all"].
+    client.session.request.return_value = _response(200, {"total": 0, "issues": []})
+    client.search_jql("project = DATA")
+    _, kwargs = client.session.request.call_args
+    assert kwargs["json"]["fields"] == ["*all"]
 
 
 def test_get_projects_handles_list_response(client):

@@ -7,7 +7,7 @@ specification is [`MASTER_BUILD_PROMPT.md`](MASTER_BUILD_PROMPT.md).
 
 | Component | Responsibility |
 | --- | --- |
-| `src/clients/jira_client.py` — `JiraClient` | Thin HTTP wrapper: auth, retries, error mapping. Knows nothing about DataFrames, CSV or Sheets. |
+| `src/clients/jira_client.py` — `JiraClient` | Thin HTTP wrapper: auth, retries, error mapping. Knows nothing about DataFrames, CSV or Sheets. Search uses token pagination (`nextPageToken` / `isLast`, no `startAt`) and defaults `fields` to `*all` — both verified live against Jira Cloud. |
 | `src/handlers/jira_handler.py` — `JiraHandler` | Extraction only: paged JQL search, single-issue / comments / worklogs / changelog / sprints / users. Never writes output. |
 | `src/transformers/jira_transformer.py` — `JiraTransformer` | Flattens nested Jira JSON (ADF text, users, lists, custom fields) into the 38-column standard schema. Missing fields become empty values, never errors. |
 | `src/utils/data_quality.py` | `validate_dataframe` / `drop_invalid_rows` / `check_required_columns`; runs before any write. |

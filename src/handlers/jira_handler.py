@@ -91,18 +91,18 @@ class JiraHandler:
         self,
         jql: str,
         fields: list[str] | None = None,
-        start_at: int = 0,
         max_results: int = 100,
+        next_page_token: str | None = None,
     ) -> dict[str, Any]:
         """Run one paged JQL search and return the raw response."""
         logger.debug(
-            "Jira search: startAt=%s maxResults=%s fields=%s",
-            start_at,
+            "Jira search: nextPageToken=%s maxResults=%s fields=%s",
+            next_page_token,
             max_results,
             fields,
         )
         return self.client.search_jql(
-            jql, fields=fields, start_at=start_at, max_results=max_results
+            jql, fields=fields, max_results=max_results, next_page_token=next_page_token
         )
 
     def get_all_issues(
@@ -113,23 +113,25 @@ class JiraHandler:
     ) -> list[dict[str, Any]]:
         """Retrieve *all* issues for a JQL query, paging to the end.
 
-        Logs progress per page (§9) and stops when the reported total
-        is reached or a short page is returned.
+        Pagination follows the current Jira Cloud contract: each
+        response carries ``nextPageToken`` (absent on the last page)
+        and ``isLast``. Logs progress per page (§9) and stops when
+        ``isLast`` is true, when the reported total is reached, or
+        when no further page token is returned. A repeated page token
+        also stops the loop rather than paging forever.
         """
         size = min(page_size or self.page_size, 100)
         logger.info("Retrieving Jira issues...")
         logger.info("JQL: %s", jql)
         all_issues: list[dict[str, Any]] = []
-        start_at = 0
         page = 1
-        total: int | None = None
+        token: str | None = None
+        seen_tokens: set[str] = set()
         while True:
             response = self.search_issues(
-                jql, fields=fields, start_at=start_at, max_results=size
+                jql, fields=fields, max_results=size, next_page_token=token
             )
             issues = response.get("issues", [])
-            if total is None:
-                total = int(response.get("total", len(issues)))
             all_issues.extend(issues)
             logger.info(
                 "Page: %d | Records retrieved: %d | Total retrieved: %d",
@@ -137,12 +139,15 @@ class JiraHandler:
                 len(issues),
                 len(all_issues),
             )
-            if total is not None and len(all_issues) >= total:
+            if response.get("isLast") is True:
                 break
-            if len(issues) < size:
-                # Short page with no total to chase: done.
+            total = response.get("total")
+            if total is not None and len(all_issues) >= int(total):
                 break
-            start_at += len(issues)
+            token = response.get("nextPageToken")
+            if not token or token in seen_tokens:
+                break
+            seen_tokens.add(token)
             page += 1
         logger.info("Total Jira issues retrieved: %d", len(all_issues))
         return all_issues

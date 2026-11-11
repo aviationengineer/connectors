@@ -184,13 +184,15 @@ def _search_router(pages: list[list[dict[str, Any]]]):
                 200, {"displayName": "Test User", "emailAddress": "test@example.com"}
             )
         if "search/jql" in url:
-            start_at = (json or {}).get("startAt", 0)
-            page_index = start_at // 2
+            token = (json or {}).get("nextPageToken")
+            page_index = 0 if not token else int(token.split("-")[1])
             page = pages[page_index] if page_index < len(pages) else []
             total = sum(len(p) for p in pages)
-            return FakeResponse(
-                200, {"total": total, "issues": page, "startAt": start_at}
-            )
+            is_last = page_index >= len(pages) - 1
+            body: dict[str, Any] = {"total": total, "issues": page, "isLast": is_last}
+            if not is_last:
+                body["nextPageToken"] = f"page-{page_index + 1}"
+            return FakeResponse(200, body)
         return FakeResponse(404, text="not found")
 
     _handler.calls = calls  # type: ignore[attr-defined]
@@ -445,7 +447,7 @@ def test_acceptance_5a_rate_limit_then_success(tmp_path, monkeypatch):
             {
                 "total": 1,
                 "issues": [_issue("DATA-1", "First issue", "2026-11-09T10:00:00.000+0000")],
-                "startAt": 0,
+                "isLast": True,
             },
         ),
     ]
@@ -466,7 +468,7 @@ def test_acceptance_5b_server_error_then_success(tmp_path, monkeypatch):
             {
                 "total": 1,
                 "issues": [_issue("DATA-1", "First issue", "2026-11-09T10:00:00.000+0000")],
-                "startAt": 0,
+                "isLast": True,
             },
         ),
     ]
@@ -487,7 +489,7 @@ def test_acceptance_5c_timeout_then_success(tmp_path, monkeypatch):
             {
                 "total": 1,
                 "issues": [_issue("DATA-1", "First issue", "2026-11-09T10:00:00.000+0000")],
-                "startAt": 0,
+                "isLast": True,
             },
         ),
     ]

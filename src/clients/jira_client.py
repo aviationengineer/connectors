@@ -206,17 +206,29 @@ class JiraClient:
         self,
         jql: str,
         fields: list[str] | None = None,
-        start_at: int = 0,
         max_results: int = 100,
+        next_page_token: str | None = None,
     ) -> dict[str, Any]:
-        """POST /rest/api/{v}/search/jql — the current Cloud search endpoint."""
+        """POST /rest/api/{v}/search/jql — the current Cloud search endpoint.
+
+        Pagination is token-based: pass the ``nextPageToken`` from the
+        previous response to fetch the next page. ``startAt`` is NOT
+        accepted by this endpoint — verified live against Jira Cloud
+        (2026-11-10, westjet.atlassian.net): sending it returns
+        HTTP 400 "Invalid request payload".
+
+        When ``fields`` is omitted, requests ``*all`` (every field,
+        including custom fields). The endpoint returns only the issue
+        ID otherwise — verified live: a field-less search returns
+        issues shaped exactly ``{"id": ...}`` with no key or fields.
+        """
         payload: dict[str, Any] = {
             "jql": jql,
-            "startAt": start_at,
             "maxResults": max_results,
+            "fields": fields or ["*all"],
         }
-        if fields:
-            payload["fields"] = fields
+        if next_page_token:
+            payload["nextPageToken"] = next_page_token
         return self.post(f"/rest/api/{self.api_version}/search/jql", payload=payload)
 
     def get_myself(self) -> dict[str, Any]:

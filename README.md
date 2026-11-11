@@ -95,6 +95,20 @@ Maps Jira custom-field ids to friendly column names, e.g.
 `retain_unknown_custom_fields: true` to keep unmapped custom fields as
 `custom_<field_id>` columns instead of dropping them.
 
+### Live Jira Cloud notes (verified 2026-11-10 against westjet.atlassian.net)
+
+- **Pagination is token-based.** `POST /rest/api/3/search/jql` does not
+  accept `startAt` (sending it returns HTTP 400 "Invalid request
+  payload"). The client pages with `nextPageToken` / `isLast` instead.
+- **Fields default to `*all`.** A search with no `fields` list returns
+  issues shaped exactly `{"id": ...}` — no key, no fields. The client
+  sends `["*all"]` when no fields are given; the pipeline always sends
+  the configured field list.
+- **JQL must be bounded.** A bare `ORDER BY updated DESC` is rejected
+  with "Unbounded JQL queries are not allowed here". Always include a
+  restriction, e.g. `updated >= -30d ORDER BY updated DESC` or a
+  `project = ...` clause.
+
 ## Authentication
 
 Jira Cloud uses basic auth with an email address and an API token
