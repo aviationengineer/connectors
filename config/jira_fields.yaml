@@ -1,0 +1,22 @@
+# Custom-field mapping for the Jira Data Ingestion Framework.
+#
+# Jira custom fields are identified by opaque ids (customfield_10001,
+# ...). This file maps each id to the friendly column name used in the
+# standardised output schema (see docs/DATA_DICTIONARY.md). Fields that
+# are not listed here are dropped unless retain_unknown_custom_fields
+# is set to true, in which case they appear as custom_<field_id>
+# columns. Add your own site's field ids below as needed.
+
+custom_fields:
+  customfield_10001:
+    name: story_points
+  customfield_10002:
+    name: business_value
+  customfield_10003:
+    name: product_owner
+  customfield_10020:
+    name: sprint
+  customfield_10014:
+    name: epic_link
+
+retain_unknown_custom_fields: false

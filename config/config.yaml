@@ -1,0 +1,123 @@
+# Enterprise Python Jira Data Ingestion Framework — example configuration.
+#
+# Copy this file and adjust the values for your environment. Secrets are
+# never stored here: Jira credentials come from environment variables
+# (see .env.example) and are expanded with ${VAR} / ${VAR:-default}.
+# Placeholders such as ${JIRA_BASE_URL} must resolve at load time or
+# loading fails with a clear ConfigError.
+
+jira:
+  base_url: ${JIRA_BASE_URL}
+  auth_type: ${JIRA_AUTH_TYPE:-basic}
+  timeout: 30
+  page_size: 100
+  projects:
+    - DATA
+    - TECH
+    - OPS
+  fields:
+    - summary
+    - description
+    - issuetype
+    - status
+    - priority
+    - assignee
+    - reporter
+    - created
+    - updated
+    - resolution
+    - labels
+    - comment
+    - attachment
+  jql:
+    issues: "project = DATA ORDER BY updated DESC"
+
+incremental_load:
+  enabled: true
+  timestamp_field: updated
+  lookback_minutes: 10
+
+output:
+  default_format: csv
+  csv:
+    path: data/output/jira_issues.csv
+
+google_sheets:
+  enabled: false
+  spreadsheet_id: ""
+  worksheet_name: jira_issues
+  credentials_file: credentials/service_account.json
+
+logging:
+  enabled: true
+  level: INFO
+  console_level: INFO
+  directory: logs
+  format: text
+  files:
+    application: jira_pipeline.log
+    error: jira_pipeline_error.log
+    debug: jira_pipeline_debug.log
+  rotation:
+    enabled: true
+    max_bytes: 10485760
+    backup_count: 10
+  retention:
+    enabled: true
+    days: 30
+
+raw_data:
+  enabled: true
+
+metadata:
+  retention_days: 365
+
+datasets:
+  issues:
+    enabled: true
+    endpoint: issues
+    jql: "project = DATA"
+    output: jira_issues.csv
+    key: issue_id
+  worklogs:
+    enabled: false
+    endpoint: worklogs
+    jql: "project = DATA"
+    output: jira_worklogs.csv
+    key: worklog_id
+  comments:
+    enabled: false
+    endpoint: comments
+    jql: "project = DATA"
+    output: jira_comments.csv
+    key: comment_id
+  sprints:
+    enabled: false
+    endpoint: sprints
+    jql: "project = DATA"
+    output: jira_sprints.csv
+    key: sprint_id
+  projects:
+    enabled: false
+    endpoint: projects
+    jql: ""
+    output: jira_projects.csv
+    key: project_key
+  users:
+    enabled: false
+    endpoint: users
+    jql: ""
+    output: jira_users.csv
+    key: account_id
+  changelog:
+    enabled: false
+    endpoint: changelog
+    jql: "project = DATA"
+    output: jira_changelog.csv
+    key: history_id
+  attachments:
+    enabled: false
+    endpoint: attachments
+    jql: "project = DATA"
+    output: jira_attachments.csv
+    key: attachment_id

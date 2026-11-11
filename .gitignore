@@ -1,0 +1,29 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+dist/
+
+# Secrets and credentials — never commit these.
+.env
+credentials/
+
+# Pipeline outputs (generated data, not source).
+data/output/*.csv
+data/raw/
+data/metadata/
+logs/*.log
+logs/*.log.*
+
+# Test cache
+.pytest_cache/
+
+# Keep the directory structure tracked even though contents are ignored.
+!data/output/.gitkeep
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/metadata/.gitkeep
+!logs/.gitkeep

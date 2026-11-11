@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jira-data-platform"
+version = "1.0.0"
+description = "Enterprise Python Jira Data Ingestion Framework: Jira REST API to standardised DataFrame, CSV and Google Sheets."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "requests==2.32.3",
+    "pandas==2.2.3",
+    "PyYAML==6.0.2",
+    "python-dotenv==1.0.1",
+    "tenacity==9.0.0",
+    "gspread==6.1.4",
+    "google-auth==2.38.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
