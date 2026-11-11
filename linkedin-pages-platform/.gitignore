@@ -1,0 +1,20 @@
+# Secrets — never commit.
+.env
+credentials/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# Pipeline outputs (local data, regenerable)
+data/output/
+data/raw/
+data/metadata/
+logs/
+!data/output/.gitkeep
+!data/raw/linkedin/.gitkeep
+!data/processed/.gitkeep
+!data/metadata/.gitkeep
+!logs/.gitkeep

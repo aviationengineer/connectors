@@ -1,0 +1,82 @@
+# LinkedIn Pages ingestion framework — main configuration.
+#
+# Credentials are NEVER stored here. They come from the environment
+# (see .env.example): LINKEDIN_ACCESS_TOKEN, LINKEDIN_CLIENT_ID,
+# LINKEDIN_CLIENT_SECRET. Run scripts/linkedin_auth.py to obtain tokens.
+
+environment: ${ENVIRONMENT:-DEV}
+
+linkedin:
+  # LinkedIn API version. LinkedIn versions its Marketing APIs monthly
+  # and sunsets old versions after about a year — bump this when the
+  # configured version approaches sunset. (202610 was current in Nov 2026.)
+  api_version: ${LINKEDIN_API_VERSION:-202610}
+  timeout: ${LINKEDIN_TIMEOUT:-30}
+  # Max posts fetched per organisation per run (null = all available).
+  max_posts: 500
+  # Posts per page request to /rest/posts.
+  page_size: 50
+  # Enrich each post with like/comment counts via Social Actions.
+  enrich_engagement: true
+  # Incremental runs only process posts newer than the last successful
+  # run's watermark, minus this lookback (minutes).
+  incremental_lookback_minutes: 10
+  # Default CSV output (overridable per run with --output).
+  output_csv: data/output/linkedin/linkedin_posts.csv
+
+logging:
+  level: ${LOG_LEVEL:-INFO}
+  console_level: ${LOG_LEVEL:-INFO}
+  directory: logs
+  format: text
+  files:
+    application: linkedin_pipeline.log
+    error: linkedin_pipeline_error.log
+    debug: linkedin_pipeline_debug.log
+  rotation:
+    enabled: true
+    max_bytes: 10485760
+    backup_count: 10
+
+paths:
+  raw_dir: data/raw/linkedin
+  metadata_dir: data/metadata
+  output_metadata: data/output/metadata.json
+
+# Google Sheets is OPTIONAL and OFF by default. CSV is the default
+# destination. Enable only with a service-account file:
+#   credentials/service_account.json
+google_sheets:
+  enabled: false
+  spreadsheet_id: ""
+  worksheet_name: "linkedin_posts"
+  mode: "upsert"
+  credentials_file: credentials/service_account.json
+
+data_quality:
+  required_columns:
+    - post_urn
+    - organization_urn
+    - created_at
+  business_key: post_urn
+  # A run whose frame is entirely invalid fails (status FAIL).
+  fail_on_invalid: true
+
+# ---------------------------------------------------------------------------
+# Compliance — read before running (see also README.md, "Compliance").
+#
+# * Only Company Pages the authenticated member administers are read,
+#   through LinkedIn's official API, under the Community Management
+#   API product. No scraping, no automation of linkedin.com, no
+#   bypass of authentication, access controls or CAPTCHA.
+# * Only data the LinkedIn app and account are authorised to access
+#   is collected. Do not add organisations you do not administer.
+# * Personal data handling: post text and engagement counts are
+#   business content from Pages you administer. Retain only what the
+#   pipeline needs, restrict access to the output files, and delete
+#   raw payloads when they are no longer required.
+# ---------------------------------------------------------------------------
+compliance:
+  collection_basis: "Official LinkedIn API (Community Management) — administered Pages only"
+  no_scraping: true
+  retention_days: 365

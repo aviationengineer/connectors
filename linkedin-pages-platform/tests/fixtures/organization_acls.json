@@ -1,0 +1,1 @@
+{"elements":[{"organization":"urn:li:organization:12345678","role":"ADMINISTRATOR","state":"APPROVED"},{"organization":"urn:li:organization:87654321","role":"CONTENT_ADMIN","state":"APPROVED"},{"organization":"urn:li:organization:99999999","role":"MEMBER","state":"APPROVED"}],"paging":{"count":3,"start":0,"total":3}}

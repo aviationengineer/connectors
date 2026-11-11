@@ -1,0 +1,18 @@
+# LinkedIn Company Pages to ingest.
+#
+# List the Pages the authenticated member administers. Use the numeric
+# organisation id (from the Page URL, e.g. linkedin.com/company/<id>/)
+# or the full URN. The pipeline verifies each one against
+# /rest/organizationAcls — a Page you do not administer is rejected
+# by LinkedIn with 403 and fails the run.
+#
+# HOW TO FIND YOUR ORGANISATION ID
+#   1. Run:  python scripts/run_linkedin_pages.py --discover
+#      (prints every Page you administer with its id and URN.)
+#   2. Paste the ids below.
+#
+# PLACEHOLDERS — replace with real organisation ids before running.
+# Example entries (do not run with these):
+#   - organization_id: "12345678"
+#   - organization_urn: "urn:li:organization:87654321"
+organizations: []
