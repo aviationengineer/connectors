@@ -202,6 +202,19 @@ shipped `maidp` entry targets MAIDP board 8805
 worksheet `MAIDP_Board_8805`). Add another board by adding another
 key and running it with `--board-key <key>`.
 
+Configured outputs for `maidp` (2026-11-11):
+
+- **Google Sheets:** workbook "Westjet jira"
+  (`1OoiNCJQnBWsoan2_IGjfe1Q5W35jFfJBTTNCZVsq8zE`), tab
+  `MAIDP_Board_8805` (created, 38-column header in place). The
+  framework's Sheets writer needs a Google service-account file
+  (`credentials/service_account.json`), so until one exists, live
+  sheet writes go through the CLI instead of `--output google_sheets`.
+- **Excel:** `data/output/maidp_board_8805_issues.xlsx`, sheet
+  `MAIDP_Board_8805` (frozen header, autofilter; regenerated from
+  the run's DataFrame, timezone-aware datetimes converted to naive
+  UTC). Use `--output excel` or `--output all` (csv + sheets + excel).
+
 Note the board endpoint paginates by offset (`startAt`), unlike the
 platform search endpoint, which is token-based.
 

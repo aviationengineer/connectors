@@ -135,5 +135,14 @@ boards:
     output:
       csv:
         path: data/output/maidp_board_8805_issues.csv
+      excel:
+        path: data/output/maidp_board_8805_issues.xlsx
+        sheet_name: "MAIDP_Board_8805"
     google_sheets:
+      # Destination for the board's sheet output. The framework writer
+      # itself needs a Google service-account file
+      # (credentials/service_account.json) to run, so until one exists
+      # live sheet writes go through the CLI (hatch_gws_cli) instead.
+      # spreadsheet_id is the "Westjet jira" workbook.
+      spreadsheet_id: "1OoiNCJQnBWsoan2_IGjfe1Q5W35jFfJBTTNCZVsq8zE"
       worksheet_name: "MAIDP_Board_8805"

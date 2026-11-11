@@ -137,6 +137,22 @@ class BoardPipeline(JiraPipeline):
             )
         )
 
+    def _excel_output_path(self) -> Path:
+        return self.project_root / str(
+            get_nested(
+                self._board_cfg, "output", "excel", "path",
+                default=f"data/output/{self.board_key}_board_issues.xlsx",
+            )
+        )
+
+    def _excel_sheet_name(self) -> str:
+        return str(
+            get_nested(
+                self._board_cfg, "output", "excel", "sheet_name",
+                default=f"{self.board_key}_board",
+            )
+        )
+
     # -- extraction ---------------------------------------------------------
     def extract(self, jql: str, metadata: PipelineMetadata) -> list[dict[str, Any]]:
         """Extract raw issues from the board; optionally preserve raw JSON."""

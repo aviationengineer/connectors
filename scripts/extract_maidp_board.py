@@ -37,7 +37,9 @@ from src.utils.exceptions import ConfigError, JiraAuthError  # noqa: E402
 _OUTPUT_MAP: dict[str, list[str]] = {
     "csv": ["csv"],
     "google_sheets": ["google_sheets"],
+    "excel": ["excel"],
     "both": ["csv", "google_sheets"],
+    "all": ["csv", "google_sheets", "excel"],
 }
 
 
@@ -69,9 +71,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--output",
-        choices=["csv", "google_sheets", "both"],
+        choices=["csv", "google_sheets", "excel", "both", "all"],
         default="csv",
-        help="Output destination(s): csv (default), google_sheets, or both.",
+        help="Output destination(s): csv (default), google_sheets, excel, "
+        "both (csv + google_sheets), or all (csv + google_sheets + excel).",
     )
     parser.add_argument(
         "--config",

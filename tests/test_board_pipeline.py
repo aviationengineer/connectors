@@ -51,7 +51,11 @@ def _board_config(tmp_dirs) -> dict:
         "name": "MAIDP — Data Product: Maintenance",
         "jql": "project = MAIDP ORDER BY updated DESC",
         "output": {
-            "csv": {"path": str(tmp_dirs["output"] / "maidp_board_8805_issues.csv")}
+            "csv": {"path": str(tmp_dirs["output"] / "maidp_board_8805_issues.csv")},
+            "excel": {
+                "path": str(tmp_dirs["output"] / "maidp_board_8805_issues.xlsx"),
+                "sheet_name": "MAIDP_Board_8805",
+            },
         },
         "google_sheets": {"worksheet_name": "MAIDP_Board_8805"},
     }
@@ -201,3 +205,19 @@ def test_board_metadata_is_separate_from_generic(
         "jira_board_ingestion"
     )
     assert not generic_latest.exists()
+
+
+def test_board_run_writes_excel_snapshot(tmp_config, tmp_dirs, sample_issues):
+    handler = FakeBoardHandler(sample_issues)
+    pipeline = _make_board_pipeline(
+        tmp_config, handler, tmp_dirs["root"], _board_config(tmp_dirs)
+    )
+    metadata = pipeline.run(mode="full", outputs=["csv", "excel"])
+
+    assert metadata.status == "SUCCESS"
+    excel_path = tmp_dirs["output"] / "maidp_board_8805_issues.xlsx"
+    assert excel_path.is_file()
+    read_back = pd.read_excel(excel_path, sheet_name="MAIDP_Board_8805")
+    assert len(read_back) == 3
+    assert list(read_back["issue_key"]) == ["DATA-101", "DATA-102", "DATA-103"]
+    assert metadata.stages["excel_write"]["status"] == "SUCCESS"

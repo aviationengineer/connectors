@@ -84,6 +84,7 @@ def print_summary(metadata: PipelineMetadata) -> None:
         f"Duplicates:          {metadata.records_duplicates}",
         f"Data Quality:        {metadata.data_quality_status}",
         f"CSV:                 {metadata.stages.get('csv_upsert', {}).get('status', 'SKIPPED')}",
+        f"Excel:               {metadata.stages.get('excel_write', {}).get('status', 'SKIPPED')}",
         f"Google Sheets:       {metadata.google_sheets_status}",
         f"Warnings:            {metadata.warnings_count}",
         f"Errors:              {metadata.errors_count}",
@@ -244,6 +245,21 @@ class JiraPipeline:
         """Google Sheets worksheet for this pipeline's upsert."""
         return str(
             get_nested(self.config, "google_sheets", "worksheet_name", default="jira_issues")
+        )
+
+    def _excel_output_path(self) -> Path:
+        """Excel workbook destination for this pipeline's output."""
+        return self.project_root / str(
+            get_nested(
+                self.config, "output", "excel", "path",
+                default="data/output/jira_issues.xlsx",
+            )
+        )
+
+    def _excel_sheet_name(self) -> str:
+        """Excel sheet name for this pipeline's output."""
+        return str(
+            get_nested(self.config, "output", "excel", "sheet_name", default="jira_issues")
         )
 
     def _build_sheets_writer(self) -> GoogleSheetWriter | None:
@@ -437,6 +453,27 @@ class JiraPipeline:
                 get_nested(self.config, "google_sheets", "enabled", default=False)
             )
             metadata.google_sheets_status = "DISABLED"
+
+        if "excel" in outputs:
+            started = metadata.start_stage("excel_write")
+            try:
+                from src.writers.excel_writer import ExcelWriter
+
+                excel_path = self._excel_output_path()
+                counts = ExcelWriter().write(
+                    df, excel_path, sheet_name=self._excel_sheet_name()
+                )
+                metadata.output_location = str(excel_path)
+                metadata.end_stage("excel_write", started, **counts)
+                logger.info(
+                    "Excel write completed: %d rows to %s",
+                    counts.get("written", 0),
+                    excel_path,
+                )
+                results["excel"] = counts
+            except Exception as exc:
+                metadata.fail_stage("excel_write", started, str(exc))
+                raise
 
         return results
 
