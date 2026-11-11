@@ -121,3 +121,19 @@ datasets:
     jql: "project = DATA"
     output: jira_attachments.csv
     key: attachment_id
+
+# Specialised board pipelines (BoardPipeline). Each board keeps its own
+# CSV, worksheet and metadata directory, so board watermarks never
+# collide with the generic pipeline's watermark.
+boards:
+  maidp:
+    board_id: 8805
+    project_key: MAIDP
+    name: "MAIDP — Data Product: Maintenance"
+    url: "https://westjet.atlassian.net/jira/software/c/projects/MAIDP/boards/8805"
+    jql: "project = MAIDP ORDER BY updated DESC"
+    output:
+      csv:
+        path: data/output/maidp_board_8805_issues.csv
+    google_sheets:
+      worksheet_name: "MAIDP_Board_8805"

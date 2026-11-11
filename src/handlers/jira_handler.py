@@ -180,6 +180,60 @@ class JiraHandler:
         data = self.client.get_sprints(board_id)
         return data.get("values", [])
 
+    def get_board(self, board_id: int | str) -> dict[str, Any]:
+        """Return an agile board's details (name, type, project)."""
+        return self.client.get_board(board_id)
+
+    def get_board_issues(
+        self,
+        board_id: int | str,
+        jql: str | None = None,
+        page_size: int = 50,
+    ) -> list[dict[str, Any]]:
+        """Retrieve *all* issues on an agile board, paging to the end.
+
+        The Agile board endpoint paginates by offset (``startAt``), not
+        by token — unlike the platform ``/search/jql`` endpoint. An
+        optional ``jql`` string filters the board's issues. Logs
+        progress per page and stops when the reported total is reached
+        or a short page is returned.
+        """
+        size = min(max(page_size, 1), 100)
+        logger.info("Retrieving issues for board %s...", board_id)
+        if jql:
+            logger.info("Board JQL: %s", jql)
+        all_issues: list[dict[str, Any]] = []
+        start_at = 0
+        page = 1
+        total: int | None = None
+        while True:
+            response = self.client.get_board_issues(
+                board_id, start_at=start_at, max_results=size, jql=jql
+            )
+            issues = response.get("issues", [])
+            if total is None:
+                total = int(response.get("total", len(issues)))
+            all_issues.extend(issues)
+            logger.info(
+                "Page: %d | Records retrieved: %d | Total retrieved: %d",
+                page,
+                len(issues),
+                len(all_issues),
+            )
+            if total is not None and len(all_issues) >= total:
+                break
+            if response.get("isLast") is True:
+                break
+            if len(issues) < size:
+                # Short page with no total to chase: done.
+                break
+            start_at += len(issues)
+            page += 1
+        logger.info(
+            "Total board issues retrieved: %d (board %s)", len(all_issues), board_id
+        )
+        return all_issues
+
     def get_users(self, query: str = "") -> list[dict[str, Any]]:
         """Return Jira users (optionally filtered by a query string)."""
         return self.client.get_users(query=query)
@@ -205,4 +259,24 @@ class JiraHandler:
             return pd.DataFrame(columns=self.transformer._output_columns())
         df = self.transformer.transform_issues(issues)
         logger.info("Transformation completed: %d records", len(df))
+        return df
+
+    def extract_board_to_dataframe(
+        self,
+        board_id: int | str,
+        jql: str | None = None,
+    ) -> pd.DataFrame:
+        """Extract all issues on an agile board as a standardized DataFrame."""
+        issues = self.get_board_issues(board_id, jql=jql)
+        if not issues:
+            logger.info(
+                "Board %s returned no issues; returning an empty DataFrame", board_id
+            )
+            return pd.DataFrame(columns=self.transformer._output_columns())
+        df = self.transformer.transform_issues(issues)
+        logger.info(
+            "Board transformation completed: %d records (board %s)",
+            len(df),
+            board_id,
+        )
         return df

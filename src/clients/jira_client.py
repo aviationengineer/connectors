@@ -257,6 +257,29 @@ class JiraClient:
     def get_sprints(self, board_id: int | str) -> dict[str, Any]:
         return self.get(f"/rest/agile/1.0/board/{board_id}/sprint")
 
+    def get_board(self, board_id: int | str) -> dict[str, Any]:
+        """GET /rest/agile/1.0/board/{id} — board details."""
+        return self.get(f"/rest/agile/1.0/board/{board_id}")
+
+    def get_board_issues(
+        self,
+        board_id: int | str,
+        start_at: int = 0,
+        max_results: int = 50,
+        jql: str | None = None,
+    ) -> dict[str, Any]:
+        """GET /rest/agile/1.0/board/{id}/issue — issues on a board.
+
+        Unlike the platform ``/search/jql`` endpoint, the Agile board
+        endpoint paginates by offset (``startAt`` / ``maxResults``) and
+        accepts an optional ``jql`` filter. Response carries ``issues``,
+        ``total``, ``startAt``, ``maxResults`` and ``isLast``.
+        """
+        params: dict[str, Any] = {"startAt": start_at, "maxResults": max_results}
+        if jql:
+            params["jql"] = jql
+        return self.get(f"/rest/agile/1.0/board/{board_id}/issue", params=params)
+
     def get_users(self, query: str = "") -> list[dict[str, Any]]:
         data = self.get(
             f"/rest/api/{self.api_version}/users/search",

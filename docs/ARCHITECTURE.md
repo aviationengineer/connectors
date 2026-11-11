@@ -13,6 +13,7 @@ specification is [`MASTER_BUILD_PROMPT.md`](MASTER_BUILD_PROMPT.md).
 | `src/utils/data_quality.py` | `validate_dataframe` / `drop_invalid_rows` / `check_required_columns`; runs before any write. |
 | `src/writers/` — `CSVWriter`, `GoogleSheetWriter`, `MetadataWriter` | Output destinations. All CSV/Sheets writes are upserts on `issue_id` (fallback `issue_key`). |
 | `src/pipeline/jira_pipeline.py` — `JiraPipeline` | Orchestration only: config → connect → extract → transform → validate → write → metadata. Owns the watermark. |
+| `src/pipeline/board_pipeline.py` — `BoardPipeline` | Specialised subclass: sources issues from one Agile board (`GET /rest/agile/1.0/board/{id}/issue`, offset pagination) instead of a platform JQL search. Own CSV, worksheet and metadata directory per board; shares the rest of the lifecycle. |
 | `src/utils/` | `config_loader` (YAML + `${VAR}` expansion), `logger` (rotating logs, redaction, run id), `date_utils` (UTC normalisation, run ids, lookback), `pipeline_metadata` (`PipelineMetadata`, version `1.0.0`), `exceptions` (typed error hierarchy). |
 
 ## Data flow

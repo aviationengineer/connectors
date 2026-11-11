@@ -98,7 +98,15 @@ class JiraPipeline:
 
     All collaborators are injectable, so tests can substitute fakes
     without touching Jira, CSV or Google Sheets.
+
+    Subclasses specialise the source by overriding :attr:`pipeline_name`,
+    :attr:`source_endpoint`, :meth:`_jira_project_label`,
+    :meth:`_csv_output_path`, :meth:`_sheets_worksheet_name` and
+    :meth:`extract` — the run lifecycle itself is shared.
     """
+
+    pipeline_name = "jira_issue_ingestion"
+    source_endpoint = "/rest/api/3/search/jql"
 
     def __init__(
         self,
@@ -218,6 +226,26 @@ class JiraPipeline:
             )
         return self._metadata_writer
 
+    def _jira_project_label(self) -> str | None:
+        """Project label recorded in the run metadata."""
+        projects = get_nested(self.config, "jira", "projects", default=[]) or []
+        return ", ".join(str(p) for p in projects) if projects else None
+
+    def _csv_output_path(self) -> Path:
+        """CSV destination for this pipeline's upsert."""
+        return self.project_root / str(
+            get_nested(
+                self.config, "output", "csv", "path",
+                default="data/output/jira_issues.csv",
+            )
+        )
+
+    def _sheets_worksheet_name(self) -> str:
+        """Google Sheets worksheet for this pipeline's upsert."""
+        return str(
+            get_nested(self.config, "google_sheets", "worksheet_name", default="jira_issues")
+        )
+
     def _build_sheets_writer(self) -> GoogleSheetWriter | None:
         if self._sheets_writer is not None:
             return self._sheets_writer
@@ -233,7 +261,7 @@ class JiraPipeline:
             return None
         self._sheets_writer = GoogleSheetWriter(
             spreadsheet_id=spreadsheet_id,
-            worksheet_name=str(sheets_cfg.get("worksheet_name", "jira_issues")),
+            worksheet_name=self._sheets_worksheet_name(),
             credentials_file=str(
                 sheets_cfg.get("credentials_file", "credentials/service_account.json")
             ),
@@ -363,9 +391,7 @@ class JiraPipeline:
 
         if "csv" in outputs:
             started = metadata.start_stage("csv_upsert")
-            csv_path = self.project_root / str(
-                get_nested(self.config, "output", "csv", "path", default="data/output/jira_issues.csv")
-            )
+            csv_path = self._csv_output_path()
             csv_path.parent.mkdir(parents=True, exist_ok=True)
             try:
                 counts = self.csv_writer.upsert(
@@ -433,6 +459,8 @@ class JiraPipeline:
         logging.getLogger("jira_pipeline").addHandler(self._counter)
         metadata = PipelineMetadata(
             pipeline_run_id=run_id,
+            pipeline_name=self.pipeline_name,
+            source_endpoint=self.source_endpoint,
             execution_mode=mode,
             environment=str(
                 os.environ.get("ENVIRONMENT")
@@ -440,8 +468,7 @@ class JiraPipeline:
             ),
         )
         metadata.jira_base_url = str(get_nested(self.config, "jira", "base_url", default="") or "")
-        projects = get_nested(self.config, "jira", "projects", default=[]) or []
-        metadata.jira_project = ", ".join(str(p) for p in projects) if projects else None
+        metadata.jira_project = self._jira_project_label()
 
         previous = self.metadata_writer.get_last_successful_run()
         if previous:

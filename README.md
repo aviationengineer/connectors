@@ -179,6 +179,32 @@ metadata = pipeline.run_incremental_load()
 print(metadata.status, metadata.records_extracted)
 ```
 
+### Board pipelines (specialised)
+
+`BoardPipeline` (`src/pipeline/board_pipeline.py`) pulls every issue
+on one Jira Agile board instead of running a platform JQL search.
+Transformation, data-quality checks, CSV upsert, optional Google
+Sheets, metadata and the run lifecycle are shared with the generic
+pipeline. Each board keeps its own CSV, worksheet and metadata
+directory, so board watermarks never collide with the generic
+pipeline's watermark.
+
+```bash
+python scripts/extract_maidp_board.py --mode full
+python scripts/extract_maidp_board.py --mode incremental
+python scripts/extract_maidp_board.py --board-id 8805 --output both
+python scripts/extract_maidp_board.py --jql "project = MAIDP AND status = 'In Progress'"
+```
+
+Boards are configured under `boards:` in `config/config.yaml` — the
+shipped `maidp` entry targets MAIDP board 8805
+(`data/output/maidp_board_8805_issues.csv`,
+worksheet `MAIDP_Board_8805`). Add another board by adding another
+key and running it with `--board-key <key>`.
+
+Note the board endpoint paginates by offset (`startAt`), unlike the
+platform search endpoint, which is token-based.
+
 ## CSV output and upsert semantics
 
 * The default output is `data/output/jira_issues.csv` (configurable via

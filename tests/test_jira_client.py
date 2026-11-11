@@ -158,3 +158,33 @@ def test_malformed_json_raises_api_error(client):
     client.session.request.return_value = _response(200, ValueError("bad json"))
     with pytest.raises(JiraAPIError, match="Malformed JSON"):
         client.get_myself()
+
+
+def test_get_board_calls_board_endpoint(client):
+    client.session.request.return_value = _response(
+        200, {"id": 8805, "name": "MAIDP", "type": "scrum"}
+    )
+    assert client.get_board(8805) == {"id": 8805, "name": "MAIDP", "type": "scrum"}
+    args, kwargs = client.session.request.call_args
+    assert args[0] == "GET"
+    assert args[1] == f"{BASE_URL}/rest/agile/1.0/board/8805"
+
+
+def test_get_board_issues_sends_offset_params(client):
+    client.session.request.return_value = _response(200, {"total": 0, "issues": []})
+    client.get_board_issues(8805, start_at=50, max_results=50, jql="project = MAIDP")
+    args, kwargs = client.session.request.call_args
+    assert args[0] == "GET"
+    assert args[1] == f"{BASE_URL}/rest/agile/1.0/board/8805/issue"
+    assert kwargs["params"] == {
+        "startAt": 50,
+        "maxResults": 50,
+        "jql": "project = MAIDP",
+    }
+
+
+def test_get_board_issues_omits_jql_when_none(client):
+    client.session.request.return_value = _response(200, {"total": 0, "issues": []})
+    client.get_board_issues(8805)
+    _, kwargs = client.session.request.call_args
+    assert kwargs["params"] == {"startAt": 0, "maxResults": 50}

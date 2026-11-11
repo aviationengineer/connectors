@@ -146,3 +146,39 @@ def test_search_issues_passes_fields_through(handler, mock_client):
         max_results=25,
         next_page_token="tok-9",
     )
+
+
+def test_get_board_issues_paginates_by_offset(handler, mock_client, sample_issues):
+    pages = [
+        {"total": 5, "issues": sample_issues[0:2]},
+        {
+            "total": 5,
+            "issues": [
+                dict(sample_issues[2], key="DATA-104"),
+                dict(sample_issues[0], key="DATA-105"),
+            ],
+        },
+        {"total": 5, "issues": [dict(sample_issues[1], key="DATA-106")]},
+    ]
+    mock_client.get_board_issues.side_effect = pages
+    issues = handler.get_board_issues(8805, page_size=2)
+    assert len(issues) == 5
+    assert mock_client.get_board_issues.call_count == 3
+    starts = [
+        call.kwargs["start_at"]
+        for call in mock_client.get_board_issues.call_args_list
+    ]
+    assert starts == [0, 2, 4]
+
+
+def test_get_board_delegates(handler, mock_client):
+    mock_client.get_board.return_value = {"id": 8805, "name": "MAIDP"}
+    assert handler.get_board(8805) == {"id": 8805, "name": "MAIDP"}
+    mock_client.get_board.assert_called_once_with(8805)
+
+
+def test_extract_board_to_dataframe(handler, mock_client, sample_issues):
+    mock_client.get_board_issues.return_value = {"total": 3, "issues": sample_issues}
+    df = handler.extract_board_to_dataframe(8805)
+    assert len(df) == 3
+    assert list(df["issue_key"]) == ["DATA-101", "DATA-102", "DATA-103"]
